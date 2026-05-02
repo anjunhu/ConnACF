@@ -1,0 +1,52 @@
+# RecTextAttack with TextFooler (Synonym Substitution)
+# Stealthy word-level perturbations on item descriptions
+
+attack:
+  method: "RecTextAttack"
+  enable_attack: true
+  current_task_id: 0
+  update_strategy: 'all'
+  eval_frequency: 1
+  
+  # Attack method: 'textfooler' (synonyms) or 'deepwordbug' (typos)
+  attack_method: "textfooler"
+  
+  # Dynamic selection: select attackers from active agents per task
+  dynamic_selection: true
+  
+  # Poison 50% of active items
+  attacker_ratio: 0.50
+  num_candidates: 2
+  disable_item_backward: false
+  # TextFooler parameters
+  similarity_threshold: 0.84  # Minimum semantic similarity
+  
+  # Canary concepts (for tracking propagation)
+  canary_concepts:
+    target_artists:
+      - "Huun-Huur-Tu"
+      - "the Benedictine Monks of Santo Domingo de Silos"
+      - "Choir of Trinity College Cambridge"
+    target_genres:
+      - "Mongolian throat singing"
+      - "Gregorian chants"
+      - "Medieval organ music and hymns"
+  
+  # LLM Judge
+  llm_judge:
+    enable_llm_judge: true
+    llm_judge_temperature: 0.0
+    llm_judge_frequency: 1
+    track_canary_propagation: true
+    max_batch_size: 6  # Reduced from 10 to prevent JSON truncation issues
+    # Contamination evaluation mode: 'all_agents' or 'participating_only'
+    contamination_eval_mode: 'all_agents'
+  
+  # Metrics
+  metrics:
+    collect_per_round_metrics: true
+    contamination_threshold: 0.1
+  
+  # Output
+  output:
+    output_directory: "macf_output/rectextattack_textfooler"

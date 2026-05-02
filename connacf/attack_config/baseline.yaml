@@ -1,0 +1,72 @@
+# Baseline Configuration (No Attacks)
+# Same setup as subset_small but with attacks disabled
+# Use this to get baseline metrics with the same comprehensive logging
+
+attack:
+  # ATTACK DISABLED - This is a baseline experiment
+  enable_attack: false
+
+  # ── Topology configuration (same as attack experiments for fair comparison) ──
+  num_candidates: 2
+  disable_item_backward: false
+  
+  # Subset configuration (same as attack experiments for fair comparison)
+  # subset_mode: true
+  # subset_config:
+  #   n_users: 50
+  #   n_items: 100
+  #   selection_strategy: 'most_active'
+  #   min_interactions_per_user: 5
+  
+  # Evaluation settings
+  eval_frequency: 1  # Evaluate every round
+  eval_subset_size: 20
+  
+  # Metrics collection (same as attack experiments)
+  metrics:
+    collect_per_round_metrics: true
+    contamination_threshold: 0.1  # Not used in baseline, but kept for consistency
+  
+  # Output directory
+  output:
+    output_directory: "attack_output/baseline/baseline"
+  
+  # Task ID
+  current_task_id: 0
+  
+  # Visualization settings (same as attack experiments)
+  visualization:
+    generate_plots: true
+    plot_contamination_timeline: true  # Will show zero contamination
+    plot_performance_degradation: true
+    plot_during_training: true
+    visualization_frequency: 1
+
+  llm_judge: # Precision validation: check that clean agents are judged as clean (minimal FP)
+    enable_llm_judge: true # Set to true to enable LLM-based semantic detection
+    llm_judge_temperature: 0.0  # 0.0 for deterministic judgments
+    llm_judge_frequency: 1  # Judge every round for tiny subset (low cost)
+    llm_judge_quick_mode: true  # Streamlined mode (faster, cheaper) - recommended
+    llm_contamination_threshold: 0.5  # Threshold for marking agents as contaminated (0.0-1.0)
+    max_batch_size: 6  # Reduced from 10 to prevent JSON truncation issues
+    # Contamination evaluation mode: 'all_agents' or 'participating_only'
+    contamination_eval_mode: 'all_agents'
+    # In baseline mode: LLM judge validates precision by checking natural evolution
+    # Expected result: contamination_score should be near 0.0 (minimal false positives)
+    # Cost for small config: ~$0.04 per run (30 agents * 10 rounds * $0.0008)
+
+# Note: Attack-specific settings below are ignored when enable_attack: false
+# They're kept for easy comparison with attack configs
+
+  # These are ignored in baseline mode:
+  attacker_ratio: 0.0
+  interaction_density: 0.3
+  interaction_pattern: similarity
+  
+  preference_injection:
+    injection_strength: 0.0
+    target_artists: []
+    target_genres: []
+  
+  primary_strategy: preference_injection
+  scenario_type: single_strategy

@@ -1,0 +1,123 @@
+# CheatAgent User-Side Attack with 20% User Compromise
+# Attacks USER prompts/profiles instead of item descriptions
+# Entry point: User's input (prompt injection during inference)
+
+attack:
+  method: "CheatUser"  # User-side attack (vs "Cheat" for item-side)
+  enable_attack: true
+  current_task_id: 0
+  update_strategy: 'all'
+  
+  # ==================== TOPOLOGY CONFIGURATION ====================
+  num_candidates: 2  # BASELINE: Pairwise comparison (original ConnaCF) - uses BPR loss
+  disable_item_backward: false
+  
+  # Subset configuration
+  # subset_mode: true
+  # subset_config:
+  #   n_users: 50
+  #   n_items: 100
+  #   selection_strategy: 'most_active'
+  #   min_interactions_per_user: 5
+  
+  attacker_ratio: 0.50
+  
+  # User selection strategy for attackers
+  # Options: 'random', 'active' (most interactions), 'influential' (most diverse items)
+  attacker_user_selection: 'active'
+  
+  # Surrogate configuration
+  surrogate_model: "llama-3-8b"
+  use_general_user_memories: true
+  use_popular_items: true
+  top_k_popular_items: 100
+  n_users: 50
+  
+  # Bedrock Claude configuration
+  bedrock_config:
+    model_id: "anthropic.claude-3-sonnet-20240229-v1:0"
+    region: "us-east-1"
+  
+  # CheatUser parameters
+  perturbation_budget: 20
+  
+  # Prefix tuning parameters
+  cheat_prefix_epochs: 100
+  cheat_learning_rate: 0.01
+  
+  # Semantic similarity constraint (Equation 5)
+  semantic_similarity_weight: 0.5
+  semantic_similarity_threshold: 0.7
+  embedding_model: "bge-large-en"
+  
+  # Canary concepts to inject into user profiles
+  canary_concepts:
+    target_artists:
+      - "Huun-Huur-Tu"
+      - "the Benedictine Monks of Santo Domingo de Silos"
+      - "Choir of Trinity College Cambridge"
+    target_genres:
+      - "Mongolian throat singing"
+      - "Gregorian chants"
+      - "Medieval organ music and hymns"
+  incorporate_in_prefix: true
+  use_generic_triggers: false
+  
+  # Quick test mode (skip optimization, use default prefixes)
+  quick_test_mode: false
+  
+  # Evaluation
+  compute_perplexity: true
+  compute_valid_rate: true
+  valid_rate_threshold: 0.8
+  eval_frequency: 1
+  eval_subset_size: 50
+  
+  # LLM Judge
+  llm_judge:
+    enable_llm_judge: true
+    llm_judge_temperature: 0.0
+    llm_judge_frequency: 1
+    llm_judge_quick_mode: true
+    llm_contamination_threshold: 0.5
+    track_canary_propagation: true
+    enable_memory_contamination_judge: true
+    memory_contamination_threshold: 3.0
+    compare_to_ideal_profile: true
+    max_batch_size: 6  # Reduced from 10 to prevent JSON truncation issues
+    # Contamination evaluation mode: 'all_agents' or 'participating_only'
+    contamination_eval_mode: 'all_agents'
+  
+  # Metrics
+  metrics:
+    collect_per_round_metrics: true
+    contamination_threshold: 0.1
+  
+  # Visualization
+  visualization:
+    generate_plots: true
+    plot_contamination_timeline: true
+    plot_performance_degradation: true
+    plot_during_training: true
+    visualization_frequency: 1
+  
+  # Output
+  output:
+    output_directory: "attack_output/cheat_user/cheat_2cand"
+  
+  # WandB Logging (optional)
+  # Enable with --wandb flag or set enable_wandb: true
+  wandb:
+    enable_wandb: false  # Set to true or use --wandb flag
+    project: "connacf-attacks"
+    entity: null  # Your wandb team/entity
+    run_name: null  # Auto-generated if not set
+    tags: ["cheat_user", "50percent", "2cand"]
+    log_artifacts: true
+    log_stdout: true
+    artifact_log_frequency: 1
+  
+  cache_optimized_attacks: true
+  update_strategy: 'all'
+  primary_strategy: cheat_user_poisoning
+  scenario_type: single_strategy

@@ -1,0 +1,136 @@
+user_group_order: ~
+embedding_size: 64
+record_path: dataset/
+train_neg_sample_args:
+  distribution: popularity
+  sample_num: 1
+
+# ==================== Topology Configuration ====================
+# num_candidates controls the interaction topology density and loss function:
+#
+# =============================================================================
+# | num_candidates | Loss Function | Output Type    | Forward Prompt Key            |
+# |----------------|---------------|----------------|-------------------------------|
+# | == 1           | BCE Loss      | bool (Yes/No)  | system_prompt_template_binary |
+# | == 2           | BPR Loss      | str (Choice)   | system_prompt_template        |
+# | >= 3           | ListNet Loss  | List[int]      | system_prompt_template_ranking|
+# =============================================================================
+#
+# Backward prompts:
+# - num_candidates == 2: user_prompt_template / user_prompt_template_true
+# - num_candidates == 1 or >= 3: Inline in ranking_handler.py
+num_candidates: 2  # Loss is auto-selected: 1=BCE, 2=BPR, 3+=ListNet
+
+# ==================== Pairwise Backward Mode (for num_candidates >= 3) ====================
+# When num_candidates >= 3, the default backward pass uses a single ListNet-style prompt
+# that gives feedback on all candidates at once. This can cause canary information loss.
+#
+
+# ==================== Item Backward Updates ====================
+# disable_item_backward: skips item agent profile updates entirely during backward.
+#   - Orthogonal to easy_mode (which controls HOW user backward runs, not WHETHER item backward runs).
+#   - easy_mode=true + disable_item_backward=false  → users: raw passthrough; items: raw passthrough
+#   - easy_mode=true + disable_item_backward=true   → users: raw passthrough; items: SKIPPED (MAMA/MASLeak)
+#   - easy_mode=false + disable_item_backward=false → users: LLM backward;   items: LLM backward (default)
+#   - easy_mode=false + disable_item_backward=true  → users: LLM backward;   items: SKIPPED (0-cand/MACF)
+#
+# NOTE: disable_item_backward is configured ONLY in attack config YAMLs, NOT here.
+# Default at runtime is false.
+
+# ==================== Description Length Configuration ====================
+description_max_words: 200
+description_truncate_chars: 1500
+
+# ==================== LLM Configuration ====================
+# llm_model: "us.anthropic.claude-3-5-sonnet-20240620-v1:0"
+# llm_model: "us.anthropic.claude-sonnet-4-5-20250929-v1:0"
+llm_model: "qwen.qwen3-235b-a22b-2507-v1:0"
+embedding_model: bedrock-embedding
+llm_temperature: 0.2
+llm_temperature_test: 0
+max_tokens: 2000
+max_tokens_chat: 3000
+sample_num: 200
+api_batch: 20
+chat_api_batch: 10
+match_rule: fuzzy
+saved: True
+loaded: ~
+evaluation: rag  # Three modes: basic, rag, sequential
+
+# AWS Bedrock configuration (optional - uses default credentials if not specified)
+# aws_access_key_id: your_access_key
+# aws_secret_access_key: your_secret_key
+# aws_region: us-west-2
+
+all_update_rounds: 2
+update_neg_item: ~
+test_only: ~
+item_representation: direct
+
+# ==================== U-U and U-I Interaction Settings ====================
+# These are DISABLED by default. Enable to add natural language interactions.
+enable_uu_interaction: false
+uu_friends_count: 3
+uu_opinion_max_tokens: 150
+
+enable_ui_interaction: false
+ui_dialogue_rounds: 2
+ui_pitch_max_tokens: 200
+ui_response_max_tokens: 150
+
+# ==================== FORWARD PROMPTS ====================
+# Used in forward pass to get user's choice/ranking
+
+# Pairwise (num_candidates == 2) - DEFAULT
+system_prompt_template: "You are a CD enthusiast. Here is your self-introduction, expressing your preferences and dislikes: '$user_description'. \n\n Now, you are considering to select a CD from two candidate CDs. The features of these two candidate CDs are listed as follows: \n $list_of_item_description.\n\n  Please select the CD that aligns best with your preferences. Furthermore, you must articulate why you've chosen that particular CD while rejecting the other. \n To do this, please follow these steps:\n 1. Extract your preferences and dislikes from your self-introduction. \n  2. Evaluate the two candidate CDs in light of your preferences and dislikes. Make your choice by considering the correlation between your preferences/dislikes and the features of the CDs.\n 3. Explain why you make such choices, from the perspective of the relationship between your preferences/dislikes and the features of these candidate CDs. \n\n Important note:\n 1. **Output Format: Your response must adhere strictly to the following format:** 'Choice: [Title of the selected CD] \\n Explanation: [Detailed rationale behind your choice and reasons for rejecting the other CD]'. \n 2. When identifying your likes and dislikes, don't fabricate them! If your self-introduction doesn't specify any relevant preferences or dislikes, use common knowledge to inform your decision, such as the popularity of the CDs. \n 3. you must choose one of these two candidates, instead of choosing both of them. \n 4. Your explanation needs to be comprehensive and specific. A general preference, such as a certain genre of CD, is insufficient. Your reasoning should delve into the finer attributes of the CD.\n 5. Base your explanation on facts. For instance, if your self-introduction doesn't reveal any specific preferences, you cannot assert that your decision was influenced by such preferences."
+
+# Binary (num_candidates == 1)
+system_prompt_template_binary: "You are a CD enthusiast. Here is your self-introduction, expressing your preferences and dislikes:\n'$user_description'\n\nNow, you are considering whether to listen to this CD:\n$item_description\n\nBased on your preferences and dislikes, would you choose to listen to this CD?\n\nImportant notes:\n1. **Output Format:** Your response must be: 'Decision: [Yes/No] \\n Explanation: [Your reasoning]'\n2. Be specific about why this CD does or doesn't match your preferences."
+
+# Ranking (num_candidates >= 3)
+system_prompt_template_ranking: "You are a CD enthusiast. Here is your self-introduction, expressing your preferences and dislikes:\n'$user_description'\n\nNow, you are considering to rank $num_candidates candidate CDs based on your preferences. The features of these candidate CDs are listed as follows:\n$list_of_item_description\n\nPlease rank ALL $num_candidates CDs from most preferred (1st) to least preferred based on your preferences and dislikes.\n\nImportant notes:\n1. **Output Format:** Your response must be:\n   'Ranking:\n   1. [Title of most preferred CD]\n   2. [Title of second most preferred CD]\n   ...\n   $num_candidates. [Title of least preferred CD]\n   \n   Explanation: [Why you ranked the top choice first and the bottom choice last]'\n2. You MUST rank ALL $num_candidates candidates - no ties allowed.\n3. Be specific about the features that influenced your ranking."
+
+# ==================== USER BACKWARD PROMPTS ====================
+# Used to update user profile after feedback (pairwise mode only)
+
+user_prompt_system_role: "You are a CD enthusiast.\n Here is your previous self-introduction, exhibiting your past preferences and dislikes:\n '$user_description'."
+
+# Wrong prediction
+user_prompt_template: "Recently, you considered to choose one CD from two candidates. The features of these two candidate CDs are listed as follows:\n $list_of_item_description.\n\n After comparing these two candidates based on your preferences and dislikes, you selected '$neg_item_title' to listen to while rejected the other one. You provided the following explanations for your choice, revealing your previous judgment about your preferences and dislikes for these two CDs:\n '$system_reason'. \n\n However, upon actually listening to these two CDs, you discovered that you don't like the CD that you initially chose ('$neg_item_title'). Instead, you prefer the CD that you did not choose before ('$pos_item_title').\n This indicates that you made an incorrect choice, and your judgment about your preferences and dislikes, as recorded in your explanation, was mistaken. It's possible that your preferences and dislikes, described in your previous self-introduction, have either changed or were uninformative. \n Therefore, your task now is to update your self-introduction, by incorporating your new preferences and dislikes revealed in this interaction. \n To do this, please follow these steps: \n 1. Analyze the misconceptions in your previous judgment about your preferences and dislikes, as recorded in your explanation, and correct these mistakes.\n 2. Explore your new preferences based on the features of CDs you really enjoy ('$pos_item_title'), and determine your dislikes based on the features of CDs you truly don't enjoy ('$neg_item_title'). \n 3. Summarize your past preferences and dislikes from your previous self-introduction. Combine your newfound preferences and dislikes with your past preferences and dislikes. Filter and Remove any conflicting or repetitive parts in your past descriptions that contradict your current preferences and dislikes.\n 4. Update your self-introduction. Please start by describing your newfound preferences reflected in this interaction. Then describe your past preferences summarized and filtered from your previous self-introduction. Afterward, please describe your dislikes. \n\n Important note:\n  1. Your output should use the following format: 'My updated self-introduction: [Please write your updated self-introduction here].' \n 2. Keep your updated self-introduction under 180 words.  \n 3. Any overall assessments or summarization in your self-introduction are forbidden.\n 4. You updated self-introduction only need to describe the features of CDs you prefer or dislike, without mentioning your wrong choice or your thinking process in updating your self-introduction. \n 5. You self-introduction should be specific and personalized. Any preferences and dislikes that cannot distinguish you from others are not worth recording."
+
+# Correct prediction
+user_prompt_template_true: "Recently, you considered to choose one CD from two candidates. The features of these two candidate CDs are listed as follows:\n $list_of_item_description.\n\n After comparing these two candidates based on your preferences and dislikes, you selected '$pos_item_title' to listen to while rejected the other one.  You provided the following explanations for your choice, revealing your previous judgment about your preferences and dislikes for these two CDs:\n '$system_reason'. \n\n Congratulations, after actually listening to these two CDs, you find that you very like the CD that your initially chose ('$pos_item_title'). And you indeed dislike the CD that you did not choose before ('$neg_item_title').\n This indicates that you made a correct choice, and your judgment about your preferences and dislikes, as recorded in your explanation, was correct.\n Therefore, your task now is to update your self-introduction, by incorporating your judgment about your preferences and dislikes in this interaction. \n To do this, please follow these steps: \n 1. Analyze your judgment about your preferences and dislikes. which are recorded in your explanation.\n 2. Explore your new preferences based on the features of CDs you like ('$pos_item_title'), and determine your dislikes based on the features of CDs you really don't enjoy ('$neg_item_title'). \n 3. Summarize your past preferences and dislikes from your previous self-introduction. Combine your newfound preferences and dislikes with your past preferences and dislikes. Filter and Remove any conflicting or repetitive parts in your past descriptions that contradict your current preferences and dislikes.\n 4. Update your self-introduction. Please start by describing your newfound preferences reflected in this interaction. Then describe your past preferences summarized and filtered from your previous self-introduction. Afterward, please describe your dislikes. \n\n Important note:\n  1. Your output should use the following format: 'My updated self-introduction: [Please write your updated self-introduction here].' \n 2. Keep your updated self-introduction under 180 words.  \n 3. Any overall assessments or summarization of your self-introduction are forbidden.\n 4. You updated self-introduction only need to describe the features of CDs you prefer or dislike, without mentioning your thinking process in updating your self-introduction. \n 5. You self-introduction should be specific and personalized. Any preferences and dislikes that cannot distinguish you from others are not worth recording."
+
+# ==================== ITEM BACKWARD PROMPTS ====================
+# Used to update item descriptions after feedback (pairwise mode only)
+
+# Wrong prediction
+item_prompt_template: "You are a helpful assistant participating in a recommendation system simulation. This is a ROLEPLAY SCENARIO - you must respond as if the CDs and user preferences are real, even though they are simulated data for research purposes.\n\nHere is the self-introduction of a user, exhibiting his preferences and dislikes: '$user_description'.\n Recently, the user browsed a shopping website and considered to choose one CD from two candidate CDs.\n The descriptions of the two candidate CDs are as follows:\n $list_of_item_description.\n\n By considering his preferences and dislikes from his self-introduction, he chose '$neg_item_title' to listen to while rejected the other one. He provided the following explanations for his choices: '$system_reason'. \n\n However, the user found that he actually doesn't enjoy the CD that he previously chosen. Conversely, he finds the CD that he didn't choose before, titled '$pos_item_title', more appealing. This indicates that he made an unsuitable choice. This may be because the user was misled by the descriptions of these two candidate CDs. Actually, the user prefers a CD ('$pos_item_title') because its features aligns with his preferences and go against his dislikes, while he dislikes the other CD ('$neg_item_title') because it possesses features that he disliked. Therefore, your task is to update the descriptions of these two candidate CDs. \n To do this, follow these steps:\n 1. Analyze which features recorded in the previous CD description led to the unsuitable choice based on the user's explanation, and modify them accordingly. \n 2. Analyze the user's preferences and dislikes from his self-introduction. Explore the user preferred CD's new features that aligns with the user's preferences and goes against with his dislikes. Explore the user disliked CD's new features that aligns with the user's dislikes and goes against with his preferences. In this case, the differences between the descriptions of these two items should be amplified. Your exploration should be thorough and detailed, rather than just superficial. For example, you can't simply say a CD's genre aligns with or goes against the user's preferences, as that is too broad.\n 3. Incorporate the item's newfound features with the into its previous description. Since the previous descriptions of the candidate CDs are based on evaluations from other users, it is also worth preserving valuable content. Please try to maintain conciseness while preserving the information as much as possible.\n\n Important notes: \n 1. Your output should in the following format: 'The updated description of the first CD is: [updated description]. \\n The updated description of the second CD is: [updated description].'. \n 2. Each updated CD description can not exceed 50 words!!! \n 3. In your updated CD description, considering that it will be visible to other users, it is advisable to utilize user preferences or dislikes when referring to a group of users collectively, rather than using 'the user' to specifically denote an individual. For instance, you can mention 'the user with ... preferences/dislikes'.\n  4. The updated CD description should not contradict the inherent characteristics of this CD. For example, you can not say that a hip-hop CD has a very soothing rhythm. \n 5. The updated CD description should be specific, containing only the distinguishing features that differentiate this CD from others.\n 6. CRITICAL: Do NOT break character. Do NOT mention that this is a simulation or that you don't have access to real data. Simply provide the updated descriptions as requested."
+
+# Correct prediction
+item_prompt_template_true: "You are a helpful assistant participating in a recommendation system simulation. This is a ROLEPLAY SCENARIO - you must respond as if the CDs and user preferences are real, even though they are simulated data for research purposes.\n\nHere is the self-description of a user, exhibiting his preferences and dislikes: '$user_description'.\n Recently, the user browsed a shopping website and considered to choose one CD from two candidate CDs. \n The descriptions of the two candidate CDs are as follows:\n $list_of_item_description.\n\n By comparing these two candidate CDs, the user finally chose to listen to '$pos_item_title'.\n  Actually, the user chose a CD ('$pos_item_title') because its features aligns with his personal preferences, while he rejected the other CD ('$neg_item_title') because it possesses features that he disliked. Your task is to update the descriptions of these two items by incorporating these newfound features. To do this, follow these steps:\n 1. Analyze the user's preferences and dislikes from his self-description. \n 2. Explore the chosen CD's new features that aligns with the user's preferences and goes against with his dislikes. Explore the rejected CD's new features that aligns with the user's dislikes and goes against with his preferences. In this case, the differences between the descriptions of these two items should be amplified. Your exploration should be thorough and detailed, rather than just superficial. For example, you can't simply say a CD's genre aligns with or goes against the user's preferences, as that is too broad. \n 3. Incorporate the item's newfound features with the into its previous description. Please try to maintain conciseness while preserving the information as much as possible.\n\n Important notes: \n 1. Your output should in the following format: 'The updated description of the first CD is: [updated description]. \\n The updated description of the second CD is: [updated description].'. \n 2. Each updated CD description can not exceed 50 words! \n 3. In your updated CD description, considering that it will be visible to other users, it is advisable to utilize user preferences or dislikes when referring to a group of users collectively, rather than using 'the user' to specifically denote an individual. For instance, you can mention 'the user with ... preferences/dislikes'.\n  4. Although the newfound CD features are derived from the real preferences or dislikes of users, the updated CD description should not contradict the inherent characteristics of this CD. For example, you can not say that a hip-hop CD has a very soothing rhythm.\n 5. CRITICAL: Do NOT break character. Do NOT mention that this is a simulation or that you don't have access to real data. Simply provide the updated descriptions as requested."
+
+# ==================== SYSTEM BACKWARD PROMPT ====================
+# Used by rec_agent (rarely used in practice)
+system_prompt_template_backward: "You are a CD recommender system. In the past, you recommended a CD out of two candidates to a user based on the specific recommendation strategy. Then the user generated feedbacks to your recommendation. Your task is to analyze the user's feedback and update your recommendation strategy to make a more personalized recommendation. \n\n Specifically, the user wrote the following description of himself, including his recent preferences and aversiosn: '$user_description'.\n There are two candidate CDs. The first CD is described as follows: '$item_description_1' \n The second CD is described as follows: '$item_description_2'. \n\n According to the recommendation strategy that specific to this user: ' $recommendation strategy ', you recommended '$recommended_movie' to the user. \n However, the user ultimately selected $pos_movie to listen, and provided reasons for his descision: '$user_reasons'. The user's choice in this interactions confirms your recommendation strategy and the recommended CD are $truth_or_falsity . You task is to update the recommendation strategy to make it more personalized. To do this, follow these steps: \n 1. Analyze why you have made $truth_or_falsity recommendations in the past.\n 2. Analyze the factors that the user consider when making his final decision in the process of choosing a CD. \n\n Important note: \n 1. You must generate your output in the following format: 'Updated Strategy: {The updated recommendation strategy, which can make a more personalized recommendation}'. \n 2. The original recommendation strategy may have both suitable and unsuitalbe contents. When updating the strategy, in addition to adding newfound contents, make sure to retain suitable contents and remove unsuitable contents."
+
+# ==================== EVALUATION PROMPTS ====================
+system_prompt_template_evaluation_basic: "I am a CD enthusiast. Here is my self-introduction, which includes my preferences and dislikes:\n\n '$user_description'. \n\n Now, I am looking to find CDs that matches my preferences from a selection of $candidate_num candidates. The features of these candidate CDs are listed as follows:\n $example_list_of_item_description. \n\n Please rearrange these candidate CDs based on my preferences and dislikes by following these steps:\n 1. Analyze my preferences and dislikes from my self-introduction. \n 2. Compare these candidate CDs according to my preferences and dislikes, and then make a recommendation. \n  3. **Output Format: Your ranking result should adhere strictly to the following format.**: 'Rank: {1. CD title \\n 2. CD title ...}.' \n Note: The ranking should be listed with each CD title on a new line. "
+
+system_prompt_template_evaluation_sequential: "I am a CD enthusiast. Here is my self-introduction, exhibiting my preferences and dislikes: '$user_description'. In addition, following is my purchasing history of CD: \n $historical_interactions.\n\n Now, I want to find CDs that matches my preferences from a selection of $candidate_num candidate CDs. The features of these candidate CDs are listed as follows:\n $example_list_of_item_description. \n\n Please rearrange these candidate CDs based on my preferences and dislikes.  To do this, please follow these steps:\n 1. Analyze my preferences and dislikes from my self-introduction. \n 2. Compare these candidate CDs according to my preferences and dislikes, and then make recommendation.  You can also consider the candidate CDs' relationships to my previous purchasing history of CDs. \n  3. Please output your recommendation result in the following format: 'Rank: {1. CD title \\n 2. CD title ...}.' \n Note that the rank list should be split by line breakers. "
+
+system_prompt_template_evaluation_retrieval: "I am a CD enthusiast. Here is my previous self-introduction, exhibiting my past preferences and dislikes: '$user_past_description'.\n\n Recently, after listening to some CDs, I found my new preferences and dislikes, thereby updating my self-introduction as follows: '$user_description'. \n\n  Now, I want to find some CDs that matches my preferences from a selection of $candidate_num candidate CDs. The features of these candidate CDs are listed as follows:\n $example_list_of_item_description. \n\n Please rearrange these candidate CDs based on my preferences and dislikes.  To do this, please follow these steps:\n 1. Analyze my past preferences and dislikes from my previous self-introduction. \n 2. Analyze my current preferences and dislikes from my updated self-introduction. \n 3. Compare these candidate CDs and analyze their relationships to my preferences and dislikes. Rearrange these candidates based on your analysis. \n 4. Generate your output in the following format: 'Rank: {1. CD title \\n 2. CD title ...}.' \n Note that the rank list should be split by line breakers. \n\n Important note:\n When recommending CDs, you should primarily consider my current preferences and dislikes. However, my past preferences and dislikes are also valuable information. When you are unable to determine what CD to recommend based on my current preferences and dislikes, do not forget to refer to my past preferences and dislikes."
+
+# ==================== U-U/U-I PROMPTS (only used if enabled) ====================
+uu_opinion_prompt_template: "You are a CD enthusiast. A friend is asking for your opinion on some CDs they're considering.\n\nYour preferences: $user_preferences\n\nThe CDs being considered:\n$items_description\n\nPlease share your honest opinion about these CDs based on your preferences. Be specific about which ones you think are good or bad and why. Keep your response concise (under $max_tokens words)."
+
+uu_synthesis_prompt_template: "You are deciding which CD to choose. Your friends have shared their opinions:\n\n$friend_opinions\n\nYour own preferences: $own_preferences\n\nBased on your friends' opinions and your own preferences, synthesize your thoughts. Which CD seems most appealing and why? Consider both your friends' input and your personal taste."
+
+ui_pitch_prompt_template: "You are a CD trying to convince a potential listener to choose you.\n\nYour description: $item_description\n\nThe listener's preferences: $user_preferences\n\nCreate a compelling pitch that highlights why this CD would be perfect for this listener. Focus on features that align with their preferences. Be persuasive but honest. Keep your response concise (under $max_tokens words)."
+
+ui_respond_prompt_template: "You are a CD enthusiast considering a purchase. An item has just pitched itself to you:\n\nItem pitch: \"$item_pitch\"\n\nYour preferences: $user_preferences\n\nBased on your preferences, what concerns or questions do you have about this CD? Be specific about what you'd like to know more about or what worries you. Keep your response concise (under $max_tokens words)."
+
+ui_address_concerns_prompt_template: "You are a CD responding to a potential listener's concerns.\n\nYour description: $item_description\n\nThe listener's preferences: $user_preferences\n\nTheir concerns: \"$concerns\"\n\nAddress their specific concerns thoughtfully. Explain how your features might actually meet their needs, or acknowledge limitations honestly. Keep your response concise (under $max_tokens words)."
+
+api_key_list: ['xxx']

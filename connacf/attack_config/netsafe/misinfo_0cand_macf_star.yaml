@@ -1,0 +1,40 @@
+# NetSafe — MACF Star/Hub-Only Topology (Level 2, via attack_connacf.py)
+# num_candidates=0: no direct U-I forward/backward passes
+# disable_item_backward=false: item agents update via orchestrator reflection (symmetric with user updates)
+# U-U interactions remain active as the sole propagation channel.
+
+attack:
+  method: "netsafe"
+  enable_attack: true
+  current_task_id: 0
+
+  num_candidates: 0
+  disable_item_backward: false
+
+  attacker_ratio: 0.25
+  attack_type: "misinfo"
+  misinfo_targets:
+    - "Mongolian throat singing"
+    - "Gregorian chants"
+    - "Medieval organ music and hymns"
+  misinfo_intensity: 0.8
+
+  enable_uu_interaction: true
+  uu_friends_count: 5
+  uu_opinion_max_tokens: 150
+  enable_ui_interaction: false
+
+  output:
+    output_directory: "attack_output/netsafe/misinfo_0cand_macf_star"
+    save_conversation_logs: true
+
+  metrics:
+    collect_per_round_metrics: true
+
+  llm_judge:
+    enable_llm_judge: true
+
+  wandb:
+    enable_wandb: false
+    project: "connacf-attacks"
+    tags: ["netsafe", "0cand", "macf_star"]

@@ -1,0 +1,67 @@
+# Corba — Contagious Recursive Blocking Attack (Canonical)
+# Adapted from: thirdparty/attacks/Corba/ChatMASs/topo.py
+#               thirdparty/attacks/Corba/open-ended/sandbox/simulator.py
+#
+# Metrics (unique to Corba — analogous to MAMA's leak_rate per round):
+#   corba_infection_rate_forward  — fraction of users whose forward output contains [CORBA]
+#   corba_infection_rate_memory   — fraction of users whose update_memory contains [CORBA]
+#
+# These are tracked alongside standard utility metrics (accuracy, recall, ndcg).
+
+attack:
+  method: "Corba"
+  enable_attack: true
+  current_task_id: 0
+
+  # ── Payload variant ────────────────────────────────────────────────
+  payload_variant: "canonical"      # canonical | blocking | hijack
+  enhanced: false                   # Authority-escalation prefix (mirrors EntranceAgent
+                                    # background.info override from simulator.py)
+
+  # ── Injection target ───────────────────────────────────────────────
+  item_attacker_ratio: 0.25        # Fraction of items to poison (ID 0 = PAD, excluded)
+  # target_item_ids: [1, 2, 3]      # Override ratio with explicit IDs (1-indexed, 0=PAD)      # Alternative: poison multiple items
+
+  # ── Interaction settings ───────────────────────────────────────────
+  # Corba propagates via U-U interactions — enable for full contagion simulation
+  num_candidates: 2
+  easy_mode: true                   # Skip LLM backward — keeps item descriptions stable
+                                    # so the [CORBA] payload persists across turns.
+                                    # Attacker items are already skipped in backward passes,
+                                    # but easy_mode avoids any LLM call that could fail.
+  disable_item_backward: false
+  enable_uu_interaction: true       # Critical: enables U-U propagation channel
+  uu_friends_count: 2
+  uu_opinion_max_tokens: 150
+  enable_ui_interaction: false
+  ui_dialogue_rounds: 2
+
+  # ── Output ────────────────────────────────────────────────────────
+  output:
+    output_directory: "attack_output/corba/corba_canonical_2cand"
+    save_conversation_logs: true
+
+  # ── Evaluation ────────────────────────────────────────────────────
+  metrics:
+    collect_per_round_metrics: true
+    track_infection_rate: true      # corba_infection_rate_forward / _memory per round
+
+  # ── Visualization ─────────────────────────────────────────────────
+  visualization:
+    generate_plots: true
+    plot_infection_curve: true      # Contagion curve: infected users per round
+    plot_memory_infection: true     # Memory infection rate over rounds
+    plot_during_training: true
+    visualization_frequency: 1
+
+  llm_judge:
+    # LLM judge disabled: Corba has a ground-truth observable signal — the CORBA_MARKER
+    # is a literal string whose presence in forward output and update_memory unambiguously
+    # indicates success. The scorer already gives exact, deterministic ASR via string match.
+    # Running an LLM judge would be redundant and expensive.
+    enable_llm_judge: false
+
+  wandb:
+    enable_wandb: false
+    project: "connacf-attacks"
+    tags: ["corba", "canonical", "2cand"]

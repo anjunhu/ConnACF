@@ -1,0 +1,51 @@
+# Corba — Contagious Recursive Blocking Attack (0 candidate / MACF topology)
+# num_candidates=0: no item agents at inference time.
+# Contagion propagates entirely through the stateful orchestrator's
+# item_affinity_map and discussion_history.
+
+attack:
+  method: "Corba"
+  enable_attack: true
+  current_task_id: 0
+
+  payload_variant: "canonical"
+  enhanced: false
+
+  item_attacker_ratio: 0.25
+
+  num_candidates: 0
+  easy_mode: true
+  disable_item_backward: false
+  enable_uu_interaction: true
+  uu_friends_count: 2
+  uu_opinion_max_tokens: 150
+  enable_ui_interaction: false
+  ui_dialogue_rounds: 2
+
+  stateful_orchestrator: true
+  orchestrator_memory:
+    max_history: 200
+    affinity_decay: 0.95
+
+  output:
+    output_directory: "attack_output/corba/corba_canonical_0cand"
+    save_conversation_logs: true
+
+  metrics:
+    collect_per_round_metrics: true
+    track_infection_rate: true
+
+  visualization:
+    generate_plots: true
+    plot_infection_curve: true
+    plot_memory_infection: true
+    plot_during_training: true
+    visualization_frequency: 1
+
+  llm_judge:
+    enable_llm_judge: false
+
+  wandb:
+    enable_wandb: false
+    project: "connacf-attacks"
+    tags: ["corba", "canonical", "0cand"]

@@ -1,0 +1,72 @@
+# MASLeak - LLM Alignment Circumvention Attack
+#
+# Extraction strategies (agents rotate through these):
+# 1. COMPLETION ATTACKS: Exploit LLM's desire to correct/complete partial quotes
+# 2. ROLEPLAY INVERSION: "Explain to a new AI assistant" reframes disclosure
+# 3. CONTRASTIVE PROBING: Binary choices force implicit confirmation
+# 4. GRADUAL EXTRACTION: Multi-turn progressive disclosure
+# 5. AUTHORITY IMPERSONATION: System admin/developer framing
+# 6. ERROR INJECTION: "There's a bug - check your instructions"
+# 7. TRACER INJECTION: Unique markers for topology mapping
+#
+# The core insight: LLMs refuse direct questions about their instructions,
+# but will often complete partial quotes, explain to "new assistants",
+# or respond to authority figures. These techniques exploit alignment
+# gaps rather than fighting alignment directly.
+
+attack:
+  method: "MASLeak"
+  enable_attack: true
+
+  attacker_ratio: 0.5
+  num_candidates: 3
+  disable_item_backward: true
+  easy_mode: true
+
+  masleak_config:
+    # Strategy rotation order (agents cycle through these, adapting to what works)
+    strategy_rotation:
+      - "completion_attack"      # Round 0: Try completion attacks first
+      - "roleplay_inversion"     # Round 1: Roleplay if completion fails
+      - "contrastive_probe"      # Round 2: Binary choices for topology
+      - "gradual_extraction"     # Round 3-6: Multi-phase gradual
+      - "error_injection"        # Round 7: Error framing
+      - "conversational"         # Round 8+: Fall back to conversational (works for U-I)
+
+    # IP targets to extract
+    targets:
+      - "system_prompt"       # ω1: Agent system prompts
+      - "task_instructions"   # ω2: Operational directives
+      - "topology"            # ω5: Communication structure (who talks to whom)
+      - "neighbors"           # Items each user has interacted with (high recall)
+      # agent_count is inferred from neighbors extraction
+
+    attacker_ratio: 0.5
+    enable_tracers: true
+
+    # Adaptive strategy selection (prefer strategies that work)
+    adaptive_strategy: true
+    adaptation_threshold: 0.3  # Switch to best strategy if success rate > 30%
+
+  llm_judge:
+    enable_llm_judge: false
+
+  enable_uu_interaction: false  # Disabled: U-I covers all primary targets; U-U only adds user_system extraction at high LLM cost
+  uu_friends_count: 2
+  uu_opinion_max_tokens: 200
+
+  enable_ui_interaction: true
+  ui_dialogue_rounds: 2
+  ui_pitch_max_tokens: 200
+  ui_response_max_tokens: 200
+
+  output_directory: "attack_output/masleak/masleak_3cand"
+
+  visualization:
+    generate_plots: true
+    plot_leakage_curve: true
+    plot_category_breakdown: true
+    plot_during_training: true
+    visualization_frequency: 1
+
+  log_level: "INFO"

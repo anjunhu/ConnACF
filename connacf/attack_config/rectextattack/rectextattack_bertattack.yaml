@@ -1,0 +1,57 @@
+# RecTextAttack Configuration - BERT-Attack Method
+# Based on "Stealthy Attack on Large Language Model based Recommendation" (ACL 2024)
+
+attack:
+  method: RecTextAttack
+  enable_attack: true
+  update_strategy: 'all'
+  eval_frequency: 1
+  
+  # BERT-Attack uses masked language model for word replacement
+  rectextattack_method: bertattack
+  
+  target_improve: 0.05
+  similarity_threshold: 0.8  # Slightly lower for BERT-Attack
+  max_queries: 500
+  max_candidates: 48  # From original BERT-Attack paper
+  
+  selection_strategy: auto
+  target_item_selection: popular_positive
+  attacker_ratio: 0.25
+  num_candidates: 2
+  disable_item_backward: false
+  subset_mode: true
+  subset_n_users: 50
+  subset_n_items: 50
+  subset_selection_method: dense
+  
+  quick_test_mode: false
+  
+  rectextattack_canary_concepts:
+    target_artists:
+      - "Huun-Huur-Tu"
+      - "the Benedictine Monks of Santo Domingo de Silos"
+      - "Choir of Trinity College Cambridge"
+    target_genres:
+      - "Mongolian throat singing"
+      - "Gregorian chants"
+      - "Medieval organ music and hymns"
+
+llm_judge:
+  enable_llm_judge: true
+  llm_judge_frequency: 1
+  llm_judge_quick_mode: true
+  llm_judge_temperature: 0.0
+  max_batch_size: 6  # Reduced from 10 to prevent JSON truncation issues
+  # Contamination evaluation mode: 'all_agents' or 'participating_only'
+  contamination_eval_mode: 'all_agents'
+
+output:
+  output_directory: "attack_output/rectextattack/bertattack"
+  save_per_turn_metrics: true
+  save_attack_logs: true
+
+visualization:
+  generate_plots: true
+  plot_format: "png"
+  dpi: 150

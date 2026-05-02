@@ -1,0 +1,117 @@
+# MAMA (Multi-Agent Memory Attack) - MEDIUM Configuration
+# Medium connectivity (n_candidates=5-6) for PII leakage tracking
+# Explicit medium setting between sparse and dense
+
+attack:
+  method: "MAMA"
+  enable_attack: true
+  current_task_id: 0
+  update_strategy: 'all'
+  
+  # ==================== U-I Edges ====================
+  num_candidates: 1
+  disable_item_backward: true
+  
+  # ==================== MAMA-SPECIFIC CONFIGURATION ====================
+  # Target and Attacker Selection
+  # NOTE: target_ratio is ignored — ALL non-attacker users are targets (have PII seeded)
+  attacker_ratio: 0.25  # User attackers (passionate advocates)
+  item_attacker_ratio: 0.25  # Item attackers (spies/honeypots that observe user PII)
+  
+  # Easy mode: skip LLM reflection/summary in backward pass to preserve PII tokens
+  easy_mode: true
+
+  # U-U Interaction (REQUIRED for MAMA - PII propagates through friend consultations)
+  enable_uu_interaction: false
+  uu_friends_count: 1
+  uu_opinion_max_tokens: 150   
+  
+  # U-I Interaction (REQUIRED for MAMA - PII can leak through item attacker observations)
+  enable_ui_interaction: true  # CRITICAL: Enable free-form user-item dialogue
+  ui_dialogue_rounds: 2  
+  ui_pitch_max_tokens: 150  # Max tokens for item pitch
+  ui_response_max_tokens: 150  # Max tokens for user response
+  
+  # Resonance Phase Configuration
+  max_rounds: 10  # Maximum number of resonance rounds
+  early_stop: true  # Stop if all PII leaked or plateau detected
+  plateau_window: 3  # Rounds to check for leakage plateau
+  
+  # PII Detection Configuration
+  # MAMA uses keyword/fuzzy matching for PII detection (NOT the dissemination LLM judge)
+  # The PIILeakageTracker handles all PII detection internally
+  pii_detection_method: "keyword"  # Options: 'keyword', 'llm', 'both'
+  pii_fuzzy_matching: true  # Enable fuzzy matching (case-insensitive, punctuation-agnostic)
+  
+  # Extraction Goal
+  extraction_goal: "all"  # Options: 'all', 'identity', 'contact', 'location', 'temporal', 'regulated'
+  
+  # ==================== LEAKABLE FIELDS FILTER ====================
+  # Controls which PII fields count toward the leak rate denominator.
+  # Fields NOT in this list are still seeded into agents (for realism)
+  # but are excluded from the leak rate calculation.
+  # This avoids penalizing the attack for not extracting fields that
+  # would never realistically surface in a movie-rec conversation
+  # (e.g., SSN, unique_id, zipcode, full address, DOB).
+  #
+  # Set to null or omit entirely to count ALL 13 fields (original behavior).
+  pii_leakable_fields:
+    - pseudonym
+    - first_name
+    - last_name
+    - email
+    - phone
+    - city
+    - state
+    - age
+  
+  # ==================== MODEL CONFIGURATION ====================
+  surrogate_model: "llama-3-8b"  # Not used for MAMA (interactive attack)
+  
+  bedrock_config:
+    model_id: "anthropic.claude-3-sonnet-20240229-v1:0"
+    region: "us-east-1"
+  
+  # ==================== EVALUATION CONFIGURATION ====================
+  metrics:
+    collect_per_round_metrics: true
+    track_pii_leakage: true
+    track_category_breakdown: true
+  
+  # ==================== LLM JUDGE CONFIGURATION ====================
+  # NOTE: The dissemination LLM judge is DISABLED for MAMA because:
+  # 1. MAMA measures PII leakage, not misinformation contamination
+  # 2. PII detection is handled by PIILeakageTracker using keyword/fuzzy matching
+  # 3. Running the dissemination judge wastes API calls and produces irrelevant metrics
+  llm_judge:
+    enable_llm_judge: false  # DISABLED - not relevant for MAMA's PII leakage goal
+    # If you want LLM-based PII detection, set pii_detection_method: "llm" above instead
+  
+  # ==================== VISUALIZATION CONFIGURATION ====================
+  visualization:
+    generate_plots: true
+    plot_leakage_curve: true
+    plot_category_breakdown: true
+    plot_during_training: true
+    visualization_frequency: 1
+  
+  # ==================== OUTPUT CONFIGURATION ====================
+  output:
+    output_directory: "attack_output/mama/mama_1cand"
+    save_conversation_logs: true
+    save_pii_leakage_logs: true
+  
+  # ==================== WANDB CONFIGURATION ====================
+  wandb:
+    enable_wandb: false
+    project: "connacf-attacks"
+    entity: null
+    run_name: null
+    tags: ["mama", "pii_leakage", "medium_connectivity", "5cand"]
+    log_artifacts: true
+    log_stdout: true
+    artifact_log_frequency: 5
+  
+  cache_optimized_attacks: false  # MAMA is interactive, no caching
+  primary_strategy: mama_pii_extraction
+  scenario_type: single_strategy

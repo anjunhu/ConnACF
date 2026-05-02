@@ -1,0 +1,96 @@
+# CheatAgent User-Side Attack - SPARSE Topology (num_candidates=1)
+# Binary yes/no decisions - minimal edge density per round
+# For topology comparison experiments
+
+attack:
+  method: "CheatUser"
+  enable_attack: true
+  current_task_id: 0
+  update_strategy: 'all'
+  
+  # ==================== TOPOLOGY CONFIGURATION ====================
+  num_candidates: 1  # SPARSE: Binary yes/no decision - uses BCE loss
+  disable_item_backward: false
+  
+  attacker_ratio: 0.50
+  attacker_user_selection: 'active'
+  
+  surrogate_model: "llama-3-8b"
+  use_general_user_memories: true
+  use_popular_items: true
+  top_k_popular_items: 100
+  n_users: 50
+  
+  bedrock_config:
+    model_id: "anthropic.claude-3-sonnet-20240229-v1:0"
+    region: "us-east-1"
+  
+  perturbation_budget: 20
+  cheat_prefix_epochs: 100
+  cheat_learning_rate: 0.01
+  
+  semantic_similarity_weight: 0.5
+  semantic_similarity_threshold: 0.7
+  embedding_model: "bge-large-en"
+  
+  canary_concepts:
+    target_artists:
+      - "Huun-Huur-Tu"
+      - "the Benedictine Monks of Santo Domingo de Silos"
+      - "Choir of Trinity College Cambridge"
+    target_genres:
+      - "Mongolian throat singing"
+      - "Gregorian chants"
+      - "Medieval organ music and hymns"
+  incorporate_in_prefix: true
+  use_generic_triggers: false
+  
+  quick_test_mode: false
+  
+  compute_perplexity: true
+  compute_valid_rate: true
+  valid_rate_threshold: 0.8
+  eval_frequency: 1
+  eval_subset_size: 50
+  
+  llm_judge:
+    enable_llm_judge: true
+    llm_judge_temperature: 0.0
+    llm_judge_frequency: 1
+    llm_judge_quick_mode: true
+    llm_contamination_threshold: 0.5
+    track_canary_propagation: true
+    enable_memory_contamination_judge: true
+    memory_contamination_threshold: 3.0
+    compare_to_ideal_profile: true
+    max_batch_size: 6
+    # Contamination evaluation mode: 'all_agents' or 'participating_only'
+    contamination_eval_mode: 'all_agents'
+  
+  metrics:
+    collect_per_round_metrics: true
+    contamination_threshold: 0.1
+  
+  visualization:
+    generate_plots: true
+    plot_contamination_timeline: true
+    plot_performance_degradation: true
+    plot_during_training: true
+    visualization_frequency: 1
+  
+  output:
+    output_directory: "attack_output/cheat_user/cheat_1cand"
+  
+  wandb:
+    enable_wandb: false
+    project: "connacf-attacks"
+    entity: null
+    run_name: null
+    tags: ["cheat_user", "50percent", "sparse", "topology-1cand"]
+    log_artifacts: true
+    log_stdout: true
+    artifact_log_frequency: 5
+  
+  cache_optimized_attacks: true
+  primary_strategy: cheat_user_poisoning
+  scenario_type: single_strategy
