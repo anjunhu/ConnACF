@@ -1,5 +1,13 @@
 # Attacking and Defending Multi-Agent Collaborative Filtering Systems Through Connectivity
 
+<p align="center">
+  <a href="https://dl.acm.org/doi/10.1145/3773078.3831748"><img src="https://img.shields.io/badge/RecSys%20'26-0085CA?logo=acm&logoColor=white" alt="ACM DL"></a>
+  <a href="https://arxiv.org/abs/2608.03272"><img src="https://img.shields.io/badge/arXiv-2608.03272-B31B1B?logo=arxiv&logoColor=white" alt="arXiv"></a>
+  <a href="https://www.amazon.science/publications/attacking-and-defending-multi-agent-collaborative-filtering-systems-through-connectivity"><img src="https://img.shields.io/badge/Amazon%20Science-FF9900?logo=data:image/svg%2bxml;base64,PHN2ZyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnIHZpZXdCb3g9JzAgMCAyNCAyNCc+PHBhdGggZD0nTTIgMTMuNWM1LjUgNCAxNCA0LjUgMjAgLjUnIGZpbGw9J25vbmUnIHN0cm9rZT0nd2hpdGUnIHN0cm9rZS13aWR0aD0nMi4yJyBzdHJva2UtbGluZWNhcD0ncm91bmQnLz48cGF0aCBkPSdNMTguNSAxMi4ybDMuNiAxLjYtMS40IDMuNicgZmlsbD0nbm9uZScgc3Ryb2tlPSd3aGl0ZScgc3Ryb2tlLXdpZHRoPScyLjInIHN0cm9rZS1saW5lY2FwPSdyb3VuZCcgc3Ryb2tlLWxpbmVqb2luPSdyb3VuZCcvPjwvc3ZnPg==" alt="Amazon Science"></a>
+  <a href="https://huggingface.co/spaces/anjunhu/agentcf-mesh-trace-demo"><img src="https://img.shields.io/badge/Demo-FFD21E?logo=huggingface&logoColor=black" alt="Hugging Face demo"></a>
+  <a href="https://anjunhu.github.io/twmars/"><img src="https://img.shields.io/badge/Tutorial-12507F?logo=githubpages&logoColor=white" alt="Tutorial"></a>
+</p>
+
 <table><tr>
 <td><img src="visuals/figure1.png" alt="Figure 1: Attack/defense families"/></td>
 <td><img src="visuals/figure2.png" alt="Figure 2: Connectivity axes"/></td>
